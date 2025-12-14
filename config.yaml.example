@@ -14,7 +14,7 @@ clash_api_secret: ""
 yaml_path: ''
 
 # Output file suffix (e.g., config_checked.yaml)
-output_suffix: "_checked"
+output_suffix: "检测"
 
 # 3. Automation Settings
 # How the script views the web (true = invisible, false = see the browser)
@@ -34,5 +34,5 @@ skip_keywords:
   - "更新"
   - "公告"
   - "重置"
-  - "Expire" 
+  - "Expire"
   - "Traffic"
