@@ -4,12 +4,34 @@ import aiohttp
 
 
 class ClashController:
+    """
+    Clash API 控制器类，用于管理 Clash 代理客户端的各种操作。文档: https://clash.gitbook.io/doc/restful-api
+
+    主要功能包括：切换代理节点、设置运行模式、获取端口信息和代理列表。
+    """
+
     def __init__(self, api_url, secret=""):
+        """
+        初始化Clash控制器。
+
+        参数:
+            api_url: Clash API地址，如 "http://127.0.0.1:9097"
+            secret: API密钥，用于身份验证
+        """
         self.api_url = api_url.rstrip("/")
         self.headers = {"Authorization": f"Bearer {secret}", "Content-Type": "application/json"}
 
     async def switch_proxy(self, selector, proxy_name):
-        """Switches the selector to the specified proxy."""
+        """
+        将指定的选择器切换到特定的代理节点。
+
+        参数:
+            selector: 选择器名称，如 "GLOBAL" 或 "Proxy"
+            proxy_name: 代理节点名称
+
+        返回:
+            bool: 切换成功返回True，失败返回False
+        """
         url = f"{self.api_url}/proxies/{urllib.parse.quote(selector)}"
         payload = {"name": proxy_name}
         try:
@@ -18,31 +40,46 @@ class ClashController:
                     if resp.status == 204:
                         return True
                     else:
-                        print(f"Failed to switch to {proxy_name}. Status: {resp.status}")
+                        print(f"切换到 {proxy_name} 失败。状态码: {resp.status}")
                         return False
         except Exception as e:
-            print(f"API Error switching to {proxy_name}: {e}")
+            print(f"切换到 {proxy_name} 时发生API错误: {e}")
             return False
 
     async def set_mode(self, mode):
-        """Sets the Clash mode (global, rule, direct)."""
+        """
+        设置Clash运行模式。
+
+        参数:
+            mode: 运行模式，可选值: "global"(全局)、"rule"(规则)、"direct"(直连)
+
+        返回:
+            bool: 设置成功返回True，失败返回False
+        """
         url = f"{self.api_url}/configs"
         payload = {"mode": mode}
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.patch(url, json=payload, headers=self.headers, timeout=5) as resp:
                     if resp.status == 204:
-                        print(f"Successfully set mode to: {mode}")
+                        print(f"成功设置模式为: {mode}")
                         return True
                     else:
-                        print(f"Failed to set mode logic. Status: {resp.status}")
+                        print(f"设置模式失败。状态码: {resp.status}")
                         return False
         except Exception as e:
-            print(f"API Error setting mode: {e}")
+            print(f"设置模式时发生API错误: {e}")
             return False
 
     async def get_running_port(self):
-        """Fetches the mixed-port or http-port from running instance."""
+        """
+        从运行中的Clash实例获取监听端口。
+
+        优先级: mixed-port > port(HTTP) > socks-port
+
+        返回:
+            int: 端口号，如果获取失败则返回默认值7890
+        """
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(f"{self.api_url}/configs", headers=self.headers) as resp:
@@ -56,10 +93,15 @@ class ClashController:
                             return conf["socks-port"]
         except Exception:
             pass
-        return 7890  # Default fallback
+        return 7890  # 默认回退端口
 
     async def get_proxies(self):
-        """Fetches all proxies."""
+        """
+        获取所有可用的代理节点列表。
+
+        返回:
+            dict: 成功时返回代理字典，失败返回None
+        """
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(f"{self.api_url}/proxies", headers=self.headers) as resp:
@@ -67,5 +109,5 @@ class ClashController:
                         data = await resp.json()
                         return data.get("proxies", {})
         except Exception as e:
-            print(f"Error fetching proxies: {e}")
+            print(f"获取代理列表时发生错误: {e}")
             return None

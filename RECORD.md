@@ -4,3 +4,6 @@
 # 检测
 官网：https://ippure.com/
 TG: https://t.me/IPPurity
+
+# clash
+api 控制器文档: https://clash.gitbook.io/doc/restful-api
