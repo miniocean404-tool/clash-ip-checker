@@ -12,11 +12,11 @@ class ClashController:
 
     def __init__(self, api_url, secret=""):
         """
-        初始化Clash控制器。
+        初始化 Clash 控制器。
 
         参数:
-            api_url: Clash API地址，如 "http://127.0.0.1:9097"
-            secret: API密钥，用于身份验证
+            api_url: Clash API 地址，如 "http://127.0.0.1:9097"
+            secret: API 密钥，用于身份验证
         """
         self.api_url = api_url.rstrip("/")
         self.headers = {"Authorization": f"Bearer {secret}", "Content-Type": "application/json"}
@@ -30,7 +30,7 @@ class ClashController:
             proxy_name: 代理节点名称
 
         返回:
-            bool: 切换成功返回True，失败返回False
+            bool: 切换成功返回 True，失败返回 False
         """
         url = f"{self.api_url}/proxies/{urllib.parse.quote(selector)}"
         payload = {"name": proxy_name}
@@ -43,18 +43,18 @@ class ClashController:
                         print(f"切换到 {proxy_name} 失败。状态码: {resp.status}")
                         return False
         except Exception as e:
-            print(f"切换到 {proxy_name} 时发生API错误: {e}")
+            print(f"切换到 {proxy_name} 时发生 API 错误: {e}")
             return False
 
     async def set_mode(self, mode):
         """
-        设置Clash运行模式。
+        设置 Clash 运行模式。
 
         参数:
             mode: 运行模式，可选值: "global"(全局)、"rule"(规则)、"direct"(直连)
 
         返回:
-            bool: 设置成功返回True，失败返回False
+            bool: 设置成功返回 True，失败返回 False
         """
         url = f"{self.api_url}/configs"
         payload = {"mode": mode}
@@ -68,17 +68,17 @@ class ClashController:
                         print(f"设置模式失败。状态码: {resp.status}")
                         return False
         except Exception as e:
-            print(f"设置模式时发生API错误: {e}")
+            print(f"设置模式时发生 API 错误: {e}")
             return False
 
     async def get_running_port(self):
         """
-        从运行中的Clash实例获取监听端口。
+        从运行中的 Clash 实例获取监听端口。
 
-        优先级: mixed-port > port(HTTP) > socks-port
+        优先级: mixed-port > port (HTTP) > socks-port
 
         返回:
-            int: 端口号，如果获取失败则返回默认值7890
+            int: 端口号，如果获取失败则返回默认值 7890
         """
         try:
             async with aiohttp.ClientSession() as session:
@@ -100,7 +100,7 @@ class ClashController:
         获取所有可用的代理节点列表。
 
         返回:
-            dict: 成功时返回代理字典，失败返回None
+            dict: 成功时返回代理字典，失败返回 None
         """
         try:
             async with aiohttp.ClientSession() as session:

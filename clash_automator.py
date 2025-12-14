@@ -8,7 +8,7 @@ from core.ip_checker import IPChecker
 from utils.config_loader import load_config
 
 # --- 配置区 ---
-# 从config.yaml加载配置（如果存在）
+# 从 config.yaml 加载配置（如果存在）
 cfg = load_config("config.yaml") or {}
 
 # 用户提供的 Clash 配置文件路径
@@ -17,7 +17,7 @@ CLASH_CONFIG_PATH = cfg.get("yaml_path", r"YOUR_CLASH_CONFIG_PATH_HERE")
 CLASH_API_URL = cfg.get("clash_api_url", "http://127.0.0.1:9097")
 CLASH_API_SECRET = cfg.get("clash_api_secret", "")
 
-# 要切换的选择器名称，通常是"GLOBAL"或"Proxy"
+# 要切换的选择器名称，通常是 "GLOBAL" 或 "Proxy"
 SELECTOR_NAME = cfg.get("selector_name", "GLOBAL")
 OUTPUT_SUFFIX = cfg.get("output_suffix", "检测")
 
@@ -40,23 +40,23 @@ async def process_proxies():
     """
     print(f"正在加载配置文件: {CLASH_CONFIG_PATH}")
     if not os.path.exists(CLASH_CONFIG_PATH):
-        print(f"错误: 配置文件未找到于 {CLASH_CONFIG_PATH}")
+        print(f"错误：配置文件未找到于 {CLASH_CONFIG_PATH}")
         return
 
     try:
         with open(CLASH_CONFIG_PATH, "r", encoding="utf-8") as f:
             config_data = yaml.full_load(f)  # full_load 对复杂本地 yaml 比 safe_load 更安全
     except Exception as e:
-        print(f"错误: YAML解析失败: {e}")
+        print(f"错误: YAML 解析失败: {e}")
         return
 
     proxies = config_data.get("proxies", [])
     if not proxies:
-        print("配置文件中未找到'proxies'字段。")
+        print("配置文件中未找到 'proxies' 字段。")
         return
 
     # 过滤关键词（部分匹配）
-    # 移除了"流量"，因为它会匹配有效节点中的"流量倍率"
+    # 移除了 "流量"，因为它会匹配有效节点中的 "流量倍率"
     SKIP_KEYWORDS = ["剩余", "重置", "到期", "有效期", "官网", "网址", "更新", "公告"]
 
     print(f"找到 {len(proxies)} 个代理节点待测试。")
@@ -67,17 +67,17 @@ async def process_proxies():
     await controller.set_mode("global")
 
     # 从 API 动态检测端口
-    # 配置文件通常不包含运行端口（由GUI管理）
+    # 配置文件通常不包含运行端口（由 GUI 管理）
     # 我们从运行实例获取实际监听端口
     mixed_port = await controller.get_running_port()
-    print(f"从API检测到运行端口: {mixed_port}")
+    print(f"从 API 检测到运行端口: {mixed_port}")
 
     local_proxy_url = f"http://127.0.0.1:{mixed_port}"
     print(f"使用本地代理: {local_proxy_url}")
 
     selector_to_use = SELECTOR_NAME
 
-    # 调试: 检查选择器并自动检测
+    # 调试：检查选择器并自动检测
     all_proxies = await controller.get_proxies()
     if all_proxies:
         print("\n--- 可用的选择器 ---")
@@ -86,7 +86,7 @@ async def process_proxies():
 
         for k, v in all_proxies.items():
             if v.get("type") in ["Selector", "URLTest", "FallBack"]:
-                print(f"  {k}: {v.get('type')} | 当前: {v.get('now')}")
+                print(f"{k}: {v.get('type')} | 当前: {v.get('now')}")
                 if k == "GLOBAL":
                     found_global = True
                 if k == "Proxy":
@@ -94,7 +94,7 @@ async def process_proxies():
         print("---------------------------\n")
 
         if not found_global and found_proxy:
-            print("注意: 未找到'GLOBAL'选择器，切换到'Proxy'。")
+            print("注意：未找到 'GLOBAL' 选择器，切换到 'Proxy'。")
             selector_to_use = "Proxy"
         elif not found_global and not found_proxy:
             # 回退到第一个选择器？
@@ -119,32 +119,32 @@ async def process_proxies():
                     break
 
             if should_skip:
-                print(f"\n[{i + 1}/{len(proxies)}] 跳过（状态节点）: {name}")
+                print(f"\n [{i + 1}/{len(proxies)}] 跳过（状态节点）: {name}")
                 continue
 
-            print(f"\n[{i + 1}/{len(proxies)}] 正在测试: {name}")
+            print(f"\n [{i + 1}/{len(proxies)}] 正在测试: {name}")
 
             # 1. 切换节点
-            print(f"  -> 正在切换 {selector_to_use} ...")
+            print(f"-> 正在切换 {selector_to_use} ...")
             switched = await controller.switch_proxy(selector_to_use, name)
             if not switched:
-                print("  -> 切换失败，跳过IP检测。")
+                print("-> 切换失败，跳过 IP 检测。")
                 continue
 
             # 2. 等待切换生效 / 连接重置
             await asyncio.sleep(2)
 
-            # 3. 带重试的IP检测
-            print("  -> 正在执行IP检测...")
+            # 3. 带重试的 IP 检测
+            print("-> 正在执行 IP 检测...")
             res = None
             for attempt in range(2):
                 try:
-                    # 显式传递本地代理以确保Playwright使用它
+                    # 显式传递本地代理以确保 Playwright 使用它
                     res = await checker.check(proxy=local_proxy_url)
                     if res.get("error") is None and res.get("pure_score") != "❓":
                         break  # 成功
                     if attempt == 0:
-                        print("     正在重试 IP 检测...")
+                        print("正在重试 IP 检测...")
                         await asyncio.sleep(2)
                 except Exception as e:
                     print(f"检测错误: {e}")
@@ -159,18 +159,18 @@ async def process_proxies():
             p_score = res.get("pure_score", "N/A")
             b_score = res.get("bot_score", "N/A")
 
-            print(f"  -> 结果: {full_str}")
-            print(f"  -> 详情: IP: {ip_addr} | 分数: {p_score} | Bot: {b_score}")
+            print(f"-> 结果: {full_str}")
+            print(f"-> 详情: IP: {ip_addr} | 分数: {p_score} | Bot: {b_score}")
 
             results_map[name] = full_str
 
     except KeyboardInterrupt:
-        print("\n进程被用户中断。正在保存当前进度...")
+        print("\n 进程被用户中断。正在保存当前进度...")
     finally:
         await checker.stop()
 
     # 应用重命名到配置数据
-    print("\n正在更新配置名称...")
+    print("\n 正在更新配置名称...")
     new_proxies = []
 
     name_mapping = {}  # 旧名 -> 新名
@@ -206,11 +206,11 @@ async def process_proxies():
     try:
         with open(output_path, "w", encoding="utf-8") as f:
             yaml.dump(config_data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
-        print(f"\n成功！已保存更新后的配置到: {output_path}")
+        print(f"\n 成功！已保存更新后的配置到: {output_path}")
     except Exception as e:
         print(f"保存配置时发生错误: {e}")
 
 
 if __name__ == "__main__":
-    # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) # 已移除: Playwright在Windows上需要Proactor
+    # asyncio.set_event_loop_policy (asyncio.WindowsSelectorEventLoopPolicy ()) # 已移除: Playwright 在 Windows 上需要 Proactor
     asyncio.run(process_proxies())

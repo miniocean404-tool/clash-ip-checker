@@ -7,21 +7,21 @@ from playwright.async_api import async_playwright
 
 class IPChecker:
     """
-    IP检测器类，用于检查代理节点的IP质量和属性。
+    IP 检测器类，用于检查代理节点的 IP 质量和属性。
 
     主要功能：
-    - 通过多个服务检测当前IP地址
-    - 获取IPPure系数和Bot流量比
-    - 查询IP归属地和属性信息
+    - 通过多个服务检测当前 IP 地址
+    - 获取 IPPure 系数和 Bot 流量比
+    - 查询 IP 归属地和属性信息
     - 支持结果缓存以提高效率
     """
 
     def __init__(self, headless=True):
         """
-        初始化IP检测器。
+        初始化 IP 检测器。
 
         参数:
-            headless: 是否使用无头模式运行浏览器，默认True（后台运行）
+            headless: 是否使用无头模式运行浏览器，默认 True（后台运行）
         """
         self.headless = headless
         self.browser = None
@@ -30,9 +30,9 @@ class IPChecker:
 
     async def start(self):
         """
-        启动Playwright浏览器实例。
+        启动 Playwright 浏览器实例。
 
-        必须在调用check()方法前执行此方法。
+        必须在调用 check () 方法前执行此方法。
         """
         self.playwright = await async_playwright().start()
         self.browser = await self.playwright.chromium.launch(headless=self.headless, args=["--no-sandbox", "--disable-setuid-sandbox"])
@@ -50,9 +50,9 @@ class IPChecker:
 
     def get_emoji(self, percentage_str):
         """
-        根据百分比值返回对应的emoji表情。
+        根据百分比值返回对应的 emoji 表情。
 
-        用于直观展示IP质量等级：
+        用于直观展示 IP 质量等级：
         - ⚪ 优秀 (≤10%)
         - 🟢 良好 (≤30%)
         - 🟡 一般 (≤50%)
@@ -64,7 +64,7 @@ class IPChecker:
             percentage_str: 百分比字符串，如 "25%"
 
         返回:
-            str: 对应的emoji字符
+            str: 对应的 emoji 字符
         """
         try:
             val = float(percentage_str.replace("%", ""))
@@ -80,29 +80,29 @@ class IPChecker:
             if val <= 90:
                 return "🔴"
             return "⚫"
-        except:
+        except (ValueError, AttributeError):
             return "❓"
 
     async def get_simple_ip(self, proxy=None):
         """
-        快速获取IPv4地址，用于缓存检查。
+        快速获取 IPv4 地址，用于缓存检查。
 
         参数:
-            proxy: 代理服务器URL，如 "http://127.0.0.1:7890"
+            proxy: 代理服务器 URL，如 "http://127.0.0.1:7890"
 
         返回:
-            str: IP地址字符串，获取失败返回None
+            str: IP 地址字符串，获取失败返回 None
         """
         urls = ["http://api.ipify.org", "http://v4.ident.me"]
         for url in urls:
             try:
-                # 用户修改超时为3秒
+                # 用户修改超时为 3 秒
                 timeout = aiohttp.ClientTimeout(total=3)
                 async with aiohttp.ClientSession(timeout=timeout) as session:
                     async with session.get(url, proxy=proxy) as resp:
                         if resp.status == 200:
                             ip = (await resp.text()).strip()
-                            if re.match(r"^\d{1,3}(\.\d{1,3}){3}\d{1,3}$", ip):
+                            if re.match(r"^\d {1,3}(\.\d {1,3}){3}\d {1,3}$", ip):
                                 return ip
             except Exception:
                 continue
@@ -110,45 +110,45 @@ class IPChecker:
 
     async def check(self, url="https://ippure.com/", proxy=None, timeout=20000):
         """
-        执行完整的IP质量检测。
+        执行完整的 IP 质量检测。
 
         检测流程：
-        1. 快速获取IP并检查缓存
+        1. 快速获取 IP 并检查缓存
         2. 使用浏览器访问检测网站
-        3. 解析IPPure系数、Bot流量比、IP属性和来源
+        3. 解析 IPPure 系数、Bot 流量比、IP 属性和来源
         4. 生成格式化的结果字符串
         5. 更新缓存
 
         参数:
-            url: IP检测网站URL，默认为ippure.com
-            proxy: 代理服务器URL
-            timeout: 页面加载超时时间（毫秒），默认20秒
+            url: IP 检测网站 URL，默认为 ippure.com
+            proxy: 代理服务器 URL
+            timeout: 页面加载超时时间（毫秒），默认 20 秒
 
         返回:
             dict: 包含以下字段的结果字典
-                - ip: IP地址
-                - pure_score: IPPure系数
-                - bot_score: Bot流量比
-                - pure_emoji: IPPure对应的emoji
-                - bot_emoji: Bot对应的emoji
-                - ip_attr: IP属性
-                - ip_src: IP来源
+                - ip: IP 地址
+                - pure_score: IPPure 系数
+                - bot_score: Bot 流量比
+                - pure_emoji: IPPure 对应的 emoji
+                - bot_emoji: Bot 对应的 emoji
+                - ip_attr: IP 属性
+                - ip_src: IP 来源
                 - full_string: 格式化的完整结果字符串
                 - error: 错误信息（如有）
         """
         if not self.browser:
             await self.start()
 
-        # 1. 快速IP检测与缓存逻辑
+        # 1. 快速 IP 检测与缓存逻辑
         current_ip = await self.get_simple_ip(proxy)
         if current_ip and current_ip in self.cache:
-            print(f"     [缓存命中] {current_ip}")
+            print(f"[缓存命中] {current_ip}")
             return self.cache[current_ip]
 
         if current_ip:
-            print(f"     [新IP] {current_ip}")
+            print(f"[新 IP] {current_ip}")
         else:
-            print("     [警告] 快速IP检测失败。使用浏览器扫描...")
+            print("[警告] 快速 IP 检测失败。使用浏览器扫描...")
 
         # 2. 浏览器检测
         context_args = {
@@ -184,20 +184,20 @@ class IPChecker:
 
             # 优化的等待逻辑
             try:
-                await page.wait_for_selector("text=人机流量比", timeout=10000)
+                await page.wait_for_selector("text = 人机流量比", timeout=10000)
             except:
                 pass
 
             await page.wait_for_timeout(2000)
             text = await page.inner_text("body")
 
-            # 1. 解析IPPure系数
-            score_match = re.search(r"IPPure系数.*?(\d+%)", text, re.DOTALL)
+            # 1. 解析 IPPure 系数
+            score_match = re.search(r"IPPure 系数.*?(\d+%)", text, re.DOTALL)
             if score_match:
                 result["pure_score"] = score_match.group(1)
                 result["pure_emoji"] = self.get_emoji(result["pure_score"])
 
-            # 2. 解析Bot流量比
+            # 2. 解析 Bot 流量比
             bot_match = re.search(r"bot\s*(\d+(\.\d+)?)%", text, re.IGNORECASE)
             if bot_match:
                 val = bot_match.group(0).replace("bot", "").strip()
@@ -206,29 +206,29 @@ class IPChecker:
                 result["bot_score"] = val
                 result["bot_emoji"] = self.get_emoji(val)
 
-            # 3. 解析IP属性
-            attr_match = re.search(r"IP属性\s*\n\s*(.+)", text)
+            # 3. 解析 IP 属性
+            attr_match = re.search(r"IP 属性 \s*\n\s*(.+)", text)
             if not attr_match:
-                attr_match = re.search(r"IP属性\s*(.+)", text)
+                attr_match = re.search(r"IP 属性 \s*(.+)", text)
             if attr_match:
                 raw = attr_match.group(1).strip()
                 result["ip_attr"] = re.sub(r"IP$", "", raw)
 
-            # 4. 解析IP来源
-            src_match = re.search(r"IP来源\s*\n\s*(.+)", text)
+            # 4. 解析 IP 来源
+            src_match = re.search(r"IP 来源 \s*\n\s*(.+)", text)
             if not src_match:
-                src_match = re.search(r"IP来源\s*(.+)", text)
+                src_match = re.search(r"IP 来源 \s*(.+)", text)
             if src_match:
                 raw = src_match.group(1).strip()
                 result["ip_src"] = re.sub(r"IP$", "", raw)
 
-            # 5. 如果快速检测失败，从页面提取IP
+            # 5. 如果快速检测失败，从页面提取 IP
             if result["ip"] == "❓":
-                ip_match = re.search(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", text)
+                ip_match = re.search(r"\b (?:\d {1,3}\.){3}\d {1,3}\b", text)
                 if ip_match:
                     result["ip"] = ip_match.group(0)
 
-            # 构造用户要求的'|'分隔格式字符串
+            # 构造用户要求的 '|' 分隔格式字符串
             attr = result["ip_attr"] if result["ip_attr"] != "❓" else ""
             src = result["ip_src"] if result["ip_src"] != "❓" else ""
             info = f"{attr}|{src}".strip()
@@ -248,7 +248,7 @@ class IPChecker:
             result["full_string"] = "【❌ 错误】"
         finally:
             if not self.headless:
-                print("     [调试] 等待5秒后关闭浏览器窗口...")
+                print("[调试] 等待 5 秒后关闭浏览器窗口...")
                 await asyncio.sleep(5)
             await page.close()
             await context.close()
