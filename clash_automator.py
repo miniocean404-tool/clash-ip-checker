@@ -1,10 +1,9 @@
 import asyncio
 import os
-import urllib.parse
 
-import aiohttp
 import yaml
 
+from core.clash_api import ClashController
 from core.ip_checker import IPChecker
 from utils.config_loader import load_config
 
@@ -21,70 +20,6 @@ CLASH_API_SECRET = cfg.get("clash_api_secret", "")
 # 要切换的选择器名称，通常是"GLOBAL"或"Proxy"
 SELECTOR_NAME = cfg.get("selector_name", "GLOBAL")
 OUTPUT_SUFFIX = cfg.get("output_suffix", "检测")
-
-
-class ClashController:
-    """
-    Clash API 控制器（本地版本）。
-
-    注：此类功能与 core.clash_api.ClashController 重复，
-    保留此版本是为了向后兼容。
-    """
-
-    def __init__(self, api_url, secret=""):
-        """
-        初始化 Clash 外部控制器。
-        """
-        self.api_url = api_url.rstrip("/")
-        self.headers = {"Authorization": f"Bearer {secret}", "Content-Type": "application/json"}
-
-    async def switch_proxy(self, selector, proxy_name):
-        """
-        将选择器切换到指定的代理节点。
-
-        参数:
-            selector: 选择器名称
-            proxy_name: 代理节点名称
-        """
-        url = f"{self.api_url}/proxies/{urllib.parse.quote(selector)}"
-        payload = {"name": proxy_name}
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.put(url, json=payload, headers=self.headers, timeout=5) as resp:
-                    if resp.status == 204:
-                        return True
-                    else:
-                        print(f"切换到 {proxy_name} 失败。状态码: {resp.status}")
-                        # print(await resp.text()) # 减少噪音输出
-                        return False
-        except Exception as e:
-            print(f"切换到 {proxy_name} 时发生API错误: {e}")
-            return False
-
-    async def set_mode(self, mode):
-        """
-        设置 Clash 运行模式。
-
-        参数:
-            mode: 运行模式 ("global"全局, "rule"规则, "direct"直连)
-
-        返回:
-            bool: 设置成功返回True
-        """
-        url = f"{self.api_url}/configs"
-        payload = {"mode": mode}
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.patch(url, json=payload, headers=self.headers, timeout=5) as resp:
-                    if resp.status == 204:
-                        print(f"成功设置模式为: {mode}")
-                        return True
-                    else:
-                        print(f"设置模式失败。状态码: {resp.status}")
-                        return False
-        except Exception as e:
-            print(f"设置模式时发生API错误: {e}")
-            return False
 
 
 async def process_proxies():
@@ -134,22 +69,8 @@ async def process_proxies():
     # 从 API 动态检测端口
     # 配置文件通常不包含运行端口（由GUI管理）
     # 我们从运行实例获取实际监听端口
-    mixed_port = 7890  # 回退默认值
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{CLASH_API_URL}/configs", headers=controller.headers) as resp:
-                if resp.status == 200:
-                    conf = await resp.json()
-                    # 优先级: mixed-port > port (http) > socks-port
-                    if conf.get("mixed-port", 0) != 0:
-                        mixed_port = conf["mixed-port"]
-                    elif conf.get("port", 0) != 0:
-                        mixed_port = conf["port"]
-                    elif conf.get("socks-port", 0) != 0:
-                        mixed_port = conf["socks-port"]
-                    print(f"从API检测到运行端口: {mixed_port}")
-    except Exception as e:
-        print(f"从 API 获取配置失败: {e}")
+    mixed_port = await controller.get_running_port()
+    print(f"从API检测到运行端口: {mixed_port}")
 
     local_proxy_url = f"http://127.0.0.1:{mixed_port}"
     print(f"使用本地代理: {local_proxy_url}")
@@ -157,37 +78,29 @@ async def process_proxies():
     selector_to_use = SELECTOR_NAME
 
     # 调试: 检查选择器并自动检测
-    try:
-        async with aiohttp.ClientSession() as session:
-            url = f"{CLASH_API_URL}/proxies"
-            headers = {"Authorization": f"Bearer {CLASH_API_SECRET}"}
-            async with session.get(url, headers=headers) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    all_proxies = data.get("proxies", {})
-                    print("\n--- 可用的选择器 ---")
-                    found_global = False
-                    found_proxy = False
+    all_proxies = await controller.get_proxies()
+    if all_proxies:
+        print("\n--- 可用的选择器 ---")
+        found_global = False
+        found_proxy = False
 
-                    for k, v in all_proxies.items():
-                        if v.get("type") in ["Selector", "URLTest", "FallBack"]:
-                            print(f"  {k}: {v.get('type')} | 当前: {v.get('now')}")
-                            if k == "GLOBAL":
-                                found_global = True
-                            if k == "Proxy":
-                                found_proxy = True
-                    print("---------------------------\n")
+        for k, v in all_proxies.items():
+            if v.get("type") in ["Selector", "URLTest", "FallBack"]:
+                print(f"  {k}: {v.get('type')} | 当前: {v.get('now')}")
+                if k == "GLOBAL":
+                    found_global = True
+                if k == "Proxy":
+                    found_proxy = True
+        print("---------------------------\n")
 
-                    if not found_global and found_proxy:
-                        print("注意: 未找到'GLOBAL'选择器，切换到'Proxy'。")
-                        selector_to_use = "Proxy"
-                    elif not found_global and not found_proxy:
-                        # 回退到第一个选择器？
-                        pass
-                else:
-                    print(f"列出代理失败。状态码: {resp.status}")
-    except Exception as e:
-        print(f"调试API错误: {e}")
+        if not found_global and found_proxy:
+            print("注意: 未找到'GLOBAL'选择器，切换到'Proxy'。")
+            selector_to_use = "Proxy"
+        elif not found_global and not found_proxy:
+            # 回退到第一个选择器？
+            pass
+    else:
+        print("获取代理列表失败或为空。")
 
     checker = IPChecker(headless=True)
     await checker.start()
