@@ -16,3 +16,4 @@ run.log
 .gemini/
 .agent/
 brain/
+.venv
