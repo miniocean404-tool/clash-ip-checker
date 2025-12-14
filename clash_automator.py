@@ -210,6 +210,8 @@ async def process_proxies():
     except Exception as e:
         print(f"保存配置时发生错误: {e}")
 
+    await controller.set_mode("rule")
+
 
 if __name__ == "__main__":
     # asyncio.set_event_loop_policy (asyncio.WindowsSelectorEventLoopPolicy ()) # 已移除: Playwright 在 Windows 上需要 Proactor
