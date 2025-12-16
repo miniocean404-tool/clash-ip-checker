@@ -1,3 +1,4 @@
 aiohttp
 pyyaml
 playwright
+curl_cffi

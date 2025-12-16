@@ -1,38 +1,40 @@
-# --- Clash Automator Configuration (Template) ---
-# Rename this file to 'config.yaml' and fill in your details.
+#-------------------核心配置-----------------
+# 极速模式 (True/False)
+# True: 使用 API 直接检测，速度快但不包含 Bot 比例
+# False: 使用浏览器模拟检测，包含 Bot 比例，速度较慢
+fast_mode: false
 
-# 1. API Connection
-# Default Clash External Controller URL (found in Settings)
-clash_api_url: "http://127.0.0.1:9097"
-# API Secret (found in Settings / "API Key", usually empty or "123456")
-clash_api_secret: ""
-
-# 2. Files
-# Full absolute path to your Clash Profile YAML
-# Tip: On Windows, use single quotes (' ') to avoid escaping backslashes.
-# Example: 'C:\Users\YourName\AppData\Roaming\clash\config.yaml'
+# 你的 Clash 配置文件绝对路径 例如 'C:\Users\YourName\AppData\Roaming\clash\config.yaml'
 yaml_path: ''
 
-# Output file suffix (e.g., config_checked.yaml)
+# Clash External Controller 外部控制地址
+clash_api_url: "http://127.0.0.1:9097"
+
+# Clash External Controller 外部控制密码 (如果没设置密码留空即可)
+clash_api_secret: ""
+
+
+#-------------------可选配置-----------------
+# 输出配置文件后缀
 output_suffix: "_checked"
 
-# 3. Automation Settings
-# How the script views the web (true = invisible, false = see the browser)
-headless: true
-
-# The "Selector" group in Clash to control (usually "GLOBAL" or "Proxy")
+# 全局代理组名称 (通常默认是 GLOBAL 或 Proxy)
 selector_name: "GLOBAL"
 
-# 4. Filters
-# Keywords to skip testing (e.g., status info nodes)
+# 非极速的浏览器模式下是否隐藏浏览器窗口 (True/False)
+# True: 隐藏 (后台运行)
+# False: 显示 (调试用)
+headless: true
+
+# Node跳过检测的关键字列表
 skip_keywords:
   - "剩余"
+  - "重置"
   - "到期"
   - "有效期"
   - "官网"
   - "网址"
   - "更新"
   - "公告"
-  - "重置"
-  - "Expire" 
-  - "Traffic"
+  - "建议"
+

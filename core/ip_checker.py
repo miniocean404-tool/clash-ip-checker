@@ -1,6 +1,7 @@
 import asyncio
 import re
 import aiohttp
+from curl_cffi.requests import AsyncSession
 from playwright.async_api import async_playwright
 
 class IPChecker:
@@ -159,3 +160,76 @@ class IPChecker:
             await context.close()
             
         return result
+
+    async def check_fast(self, proxy=None):
+        """
+        Fast mode using https://my.123169.xyz/v1/info API.
+        Skips browser challenge/rendering.
+        """
+        url = "https://my.123169.xyz/v1/info"
+        result = {
+            "pure_emoji": "❓", "bot_emoji": "❓", "ip_attr": "❓", "ip_src": "❓",
+            "pure_score": "❓", "bot_score": "N/A", "full_string": "", "ip": "❓", "error": None
+        }
+
+        try:
+            # Short timeout for fast mode (5s)
+            # Use curl_cffi AsyncSession
+            proxies = None
+            if proxy:
+                # curl_cffi expects proxies dict: {"http": "...", "https": "..."}
+                # Check if proxy string has scheme, usually "http://127.0.0.1:..."
+                proxies = {"http": proxy, "https": proxy}
+
+            async with AsyncSession(proxies=proxies, impersonate="chrome110", timeout=5) as session:
+                resp = await session.get(url)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    
+                    # 1. IP
+                    result["ip"] = data.get("ip", "❓")
+                    
+                    # 2. Pure Score (fraudScore)
+                    f_score = data.get("fraudScore")
+                    if f_score is not None:
+                        # fraudScore is likely 0-100 int. Convert to str% for emoji compatibility
+                        result["pure_score"] = f"{f_score}%"
+                        result["pure_emoji"] = self.get_emoji(result["pure_score"])
+                    
+                    # 3. Attributes (Residential vs DataCenter)
+                    is_resi = data.get("isResidential", False)
+                    # Default to False (机房) if key missing, but API returns boolean
+                    result["ip_attr"] = "住宅" if is_resi else "机房"
+
+                    # 4. Source (Broadcast vs Native)
+                    is_broad = data.get("isBroadcast", False)
+                    result["ip_src"] = "广播" if is_broad else "原生"
+
+                    # 5. Full String
+                    # Bot emoji is skipped or N/A. The user said: "Although no bot ratio... finally display without bot ratio"
+                    # Original: 【⚪🟢 IPAttr|IPSource】
+                    # Fast Mode: 【⚪ IPAttr|IPSource】 (Removed bot emoji slot)
+                    
+                    attr = result["ip_attr"] if result["ip_attr"] != "❓" else ""
+                    src = result["ip_src"] if result["ip_src"] != "❓" else ""
+                    info = f"{attr}|{src}".strip()
+                    if info == "|": info = "未知"
+                    if not info: info = "未知"
+
+                    result["full_string"] = f"【{result['pure_emoji']} {info}】"
+                    
+                    # Cache Update (Optional, maybe not needed for fast mode as it is already fast)
+                    if result["ip"] != "❓":
+                        self.cache[result["ip"]] = result.copy()
+                        
+                else:
+                    result["error"] = f"API Error {resp.status_code}"
+                    result["full_string"] = "【❌ API Error】"
+
+        except Exception as e:
+            print(f"     [Debug] curl_cffi error: {e}")
+            result["error"] = str(e)
+            result["full_string"] = "【❌ Error】"
+
+        return result
+
