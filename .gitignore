@@ -8,6 +8,7 @@ __pycache__/
 !config.yaml.example
 *_checked.yaml
 run.log
+*.map
 
 # VS Code
 .vscode/

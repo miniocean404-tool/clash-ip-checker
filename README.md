@@ -13,7 +13,9 @@
 
 ![图片描述](assets/clash-node-checked.png)
 
-> **注意**: 本工具在非极速模式下使用 **Playwright** 进行高拟真的浏览器指纹检测，确保检测结果与真实用户体验一致。
+##  ⚡新增Docker部署 [详情见Docker分支](https://github.com/tombcato/clash-ip-checker/tree/docker)
+相对于主分支而言，Docker部署后代理切换不影响本地网络（非本地部署方式），且能直接输入订阅链接输出新订阅链接，没有繁琐的使用步骤，**正真做到一键替换检测！！！**
+
 
 ## ✨ 功能特点
 
