@@ -8,7 +8,7 @@ DEFAULT_CONFIG = {
     "check_url": "https://my.123169.xyz/v1/info",
     "request_timeout": 5,
     "mixed_port": 7890,
-    "user_agent": "ClashVerge/1.3.8 Mihomo/1.18.1",
+    "user_agent": "ClashVerge/2.4.3 Mihomo/1.19.17",
     "skip_keywords": ["剩余", "到期", "有效期", "重置", "官网", "网址", "更新", "公告", "建议"],
     "max_age": 3600, # 秒，缓存最大时间 超过这个时间会重新检查ip否则用缓存
     "max_queue_size": 10, # 最大任务队列数

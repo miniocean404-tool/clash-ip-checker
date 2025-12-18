@@ -31,6 +31,6 @@ RUN clash -v
 COPY . .
 
 # Ensure entrypoint is executable
-RUN chmod +x entrypoint.sh
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh
 
 ENTRYPOINT ["./entrypoint.sh"]
